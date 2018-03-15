@@ -9,8 +9,9 @@ import sys
 parser = argparse.ArgumentParser(description='diff for ip scans')
 parser.add_argument('--ports','-p', dest='ports', nargs='+', help='ports to scan')
 parser.add_argument('--ip', dest='ips', type=str, nargs='+', help='ip ranges with -. 192.168.1.1-255')
-parser.add_argument('--newscanname', dest='newscanname', type=str, nargs='+', help='name of new scan')
+parser.add_argument('--newscanname', dest='newscanname', type=str, help='name of new scan')
 parser.add_argument("-v", dest='verbose', help="increase output verbosity", action="store_true")
+####TIMEOUT
 
 args = parser.parse_args()
 
@@ -69,10 +70,12 @@ def ParsePorts(portsinput):
 
 def ScanIp(ip, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(0.1)
     result = sock.connect_ex((ip, port))
 
-    output = False
     if result:
+        output = False
+    else:
         output = True
 
     return output
@@ -80,7 +83,7 @@ def ScanIp(ip, port):
 
 if args.newscanname:
     if args.ports and args.ips:
-        print("new scan:")
+        print("new scan " + args.newscanname + ":")
         #iplist
         parsedips = ParseIps(args.ips)
         iplist = GenerateIplist(parsedips)
@@ -92,6 +95,20 @@ if args.newscanname:
         portlist = ParsePorts(args.ports)
         Verboseout("portlist: " + str(portlist), args.verbose)
 
+        openPorts = {}
+        for n, ip in enumerate(iplist):
+            print("ip (" + str(n + 1) + "/" + str(IpsTodo) + ") " + ip)
+            for port in portlist:
+                if ScanIp(ip, port):
+                    if not ip in openPorts.keys():
+                        openPorts[ip] = []
+                    openPorts[ip].append(port)
+                    print "port " + str(port) + ": open"
+
+        print openPorts
+
 
     else:
         print("port- and ip-ranges needed")
+
+
